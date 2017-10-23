@@ -59,7 +59,8 @@ public class ServiceActivity extends AppCompatActivity {
 
     //private static final String RESOLVER_ADDRESS = "143.248.56.100";
     //private static final String RESOLVER_ADDRESS = "192.168.1.48";
-    private static final String RESOLVER_ADDRESS = "143.248.53.213";
+    //private static final String RESOLVER_ADDRESS = "143.248.53.213";
+    private static final String RESOLVER_ADDRESS = "125.131.73.34";
     //private static final String RESOLVER_ADDRESS = "8.8.8.8";
     private static final int RESOLVER_PORT = 53;
     private static final String[] LOCAL_SEARCH_PATH = { "onsepc.kr." };
@@ -434,7 +435,7 @@ public class ServiceActivity extends AppCompatActivity {
                     hMsg.setData(bun);
 
                     count++;
-                    //Log.d("onsQuery | NAPTR | ", naptrRecord.toString());
+                    Log.d("onsQuery | NAPTR | ", naptrRecord.toString());
                 }
                 //Send message.
                 handler.sendMessage(hMsg);

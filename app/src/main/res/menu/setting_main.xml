@@ -27,5 +27,10 @@
         android:orderInCategory="104"
         android:title="@string/action_filter"
         app:showAsAction="never" />
+    <item
+        android:id="@+id/action_wifiap"
+        android:orderInCategory="105"
+        android:title="@string/action_wifiap"
+        app:showAsAction="never" />
 
 </menu>

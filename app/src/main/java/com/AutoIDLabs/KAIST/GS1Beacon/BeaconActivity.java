@@ -219,6 +219,15 @@ public class BeaconActivity extends AppCompatActivity  {
                 }
                 startActivity(intent2);
                 break;
+            case R.id.action_wifiap:
+                if (mScanning) {
+                    mScanning = false;
+                    mLeScanner.stopScan(mLeScanCallback);
+                }
+                startActivity(new Intent(BeaconActivity.this, WiFiActivity.class));
+                break;
+            default:
+                break;
         }
         return super.onOptionsItemSelected(item);
     }
