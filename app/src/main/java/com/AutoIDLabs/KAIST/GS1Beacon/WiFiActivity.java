@@ -32,6 +32,7 @@ import java.util.regex.Pattern;
 import android.util.Log;
 import android.widget.ImageView;
 import android.widget.Toast;
+import java.math.BigInteger;
 
 
 public class WiFiActivity extends PreferenceActivity {
@@ -94,7 +95,7 @@ public class WiFiActivity extends PreferenceActivity {
 
                 Intent intent = new Intent(WiFiActivity.this, ServiceActivity.class);
                 intent.putExtra(ServiceActivity.EXTRAS_DEVICE_NAME, wifi.apSsid);
-                intent.putExtra(ServiceActivity.EXTRAS_DEVICE_ADVDATA, "("+wifi.gs1Ai+")"+wifi.gs1Code);
+                intent.putExtra(ServiceActivity.EXTRAS_DEVICE_ADVDATA, "("+wifi.gs1Ai+")"+wifi.gs1Code + "\n");
 
                 Bundle args1 = new Bundle();
                 args1.putSerializable("ARRAYLIST1", (Serializable) new ArrayList<String>());
@@ -166,8 +167,9 @@ public class WiFiActivity extends PreferenceActivity {
 
         //test data
         mWifis.put("00:1c:42:00:00:07", new WiFiInfo("00:1c:42:00:00:07", "NEO (01)0000000013200", -10));
-        mWifis.put("00:1c:42:00:00:08", new WiFiInfo("00:1c:42:00:00:08", "NEO (01)0000000000132", -10));
-        mWifis.put("00:1c:42:00:00:09", new WiFiInfo("00:1c:42:00:00:09", "SMITH (01)8854321000081", -20));
+        mWifis.put("00:1c:42:00:00:0b", new WiFiInfo("00:1c:42:00:00:0b", "TEST (01)50614141322607", -20));
+        mWifis.put("00:1c:42:00:00:0c", new WiFiInfo("00:1c:42:00:00:0c", "NEO ASCII1 {\"}(RMKfim", -20));
+        mWifis.put("00:1c:42:00:00:0d", new WiFiInfo("00:1c:42:00:00:0d", "NEO ASCII2 {\"}(RMKfim{6}5r]orB", -20));
     }
 
     private BroadcastReceiver mWifiScanReceiver = new BroadcastReceiver() {
@@ -177,7 +179,7 @@ public class WiFiActivity extends PreferenceActivity {
             if(action.equals(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION)){
                 getWiFiAP();
                 updateWiFi();
-            }else if(action.equals(WifiManager.WIFI_STATE_CHANGED_ACTION)){
+            } else if(action.equals(WifiManager.WIFI_STATE_CHANGED_ACTION)){
                 switch(mWifiManager.getWifiState()) {
                     case WifiManager.WIFI_STATE_DISABLED:
                         Log.d(TAG, "WIFI disabled..");
@@ -201,7 +203,10 @@ public class WiFiActivity extends PreferenceActivity {
         //GS1 WiFi only
         public String gs1Ai;
         public String gs1Code;
-        private String gs1Pattern = ".*\\((01|414|255|8017)\\)(\\d+)$";
+        public String gs1Serial;
+        private String gs1Pattern = ".*\\((01|21|414|255|8017)\\)(\\d+)$";
+        private String gs1PatternEx = ".*\\{(\"|%W|#l|z\\()\\}(.+)$";
+        private String gs1SerialPatternEx = "\\{(6)\\}(.+)$";
 
         public WiFiInfo(String bssid, String ssid, int rssi) {
             apBssid = bssid;
@@ -209,10 +214,15 @@ public class WiFiActivity extends PreferenceActivity {
             apRssi = rssi;
             gs1Ai = null;
             gs1Code = null;
+            gs1Serial = null;
 
             //GS1 WiFi AP
             if (getGS1Info(apSsid)) {
-                Log.e(TAG, "GS1 WiFi detected AI=" + gs1Ai + ", GS1=" + gs1Code);
+                if (gs1Serial == null) {
+                    Log.d(TAG, "GS1 WiFi detected AI=" + gs1Ai + ", GS1=" + gs1Code);
+                } else {
+                    Log.d(TAG, "GS1 WiFi detected AI=" + gs1Ai + ", GS1=" + gs1Code + ", SERIAL=" + gs1Serial);
+                }
             }
         }
 
@@ -221,12 +231,36 @@ public class WiFiActivity extends PreferenceActivity {
         }
 
         public boolean getGS1Info(String ssid) {
+            //(, Normal
             Pattern pattern = Pattern.compile(gs1Pattern);
             Matcher matcher = pattern.matcher(ssid);
-
             if (matcher.find()) {
                 gs1Ai = matcher.group(1);
                 gs1Code = matcher.group(2);
+                return true;
+            }
+
+            //{, With serial
+            CodeConverter converter = new CodeConverter('!', 90);
+            pattern = Pattern.compile(gs1SerialPatternEx);
+            matcher = pattern.matcher(ssid);
+            if (matcher.find()) {
+                gs1Serial = converter.convertCodeToInt(matcher.group(2));
+                int index = ssid.lastIndexOf('{');
+                ssid = ssid.substring(0, index);
+            }
+
+            //{
+            pattern = Pattern.compile(gs1PatternEx);
+            matcher = pattern.matcher(ssid);
+
+            if (matcher.find()) {
+                gs1Ai = converter.convertCodeToInt(matcher.group(1));
+                gs1Code = converter.convertCodeToInt(matcher.group(2));
+
+                if (gs1Ai.equals("1")) {
+                    gs1Ai = "01";
+                }
                 return true;
             }
 
@@ -245,6 +279,7 @@ public class WiFiActivity extends PreferenceActivity {
             List<String> testSet = new ArrayList<String>();
             testSet.add("NEO");
             testSet.add("(01)01234567890234");
+            testSet.add("(01)50614141322607");
             testSet.add("NEO (01)01234567890234");
             testSet.add("(414)01234567890234");
             testSet.add("NEO (414)01234567890234");
@@ -257,11 +292,12 @@ public class WiFiActivity extends PreferenceActivity {
             testSet.add("N11EO (a414)01234567890234  (01)");
             testSet.add("N11EO 010 01234567890234");
 
+
             for (String test : testSet) {
                 if (Pattern.matches(gs1Pattern, test)) {
-                    Log.e(TAG, test + ",  gs1 match");
+                    Log.d(TAG, test + ",  gs1 match");
                 } else {
-                    Log.e(TAG, test + ",  gs1 does not match");
+                    Log.d(TAG, test + ",  gs1 does not match");
                 }
             }
         }
@@ -279,6 +315,48 @@ public class WiFiActivity extends PreferenceActivity {
                     super.handleMessage(msg);
                     break;
             }
+        }
+    }
+
+
+    public class CodeConverter {
+        public int mCodeBase = (int)'!';
+        public int mCodeNum = 90;
+
+        public CodeConverter(char codeBase, int codeNum) {
+            mCodeBase = (int)codeBase;
+            mCodeNum = codeNum;
+        }
+
+        String convertCodeToInt(String code) {
+            BigInteger number = new BigInteger("0");
+            BigInteger addFactor = new BigInteger("1");
+            char []codes = code.toCharArray();
+            for (int i = codes.length - 1; i >= 0; i--) {
+                number = number.add(addFactor.multiply(BigInteger.valueOf((int)codes[i] - mCodeBase)));
+                addFactor = addFactor.multiply(BigInteger.valueOf(mCodeNum));
+            }
+
+            return number.toString();
+        }
+
+        String convertIntToCode(String num) {
+            int size = 0;
+            BigInteger number = new BigInteger(num);
+            while(number.compareTo(BigInteger.valueOf(0)) != 0) {
+                number = number.divide(BigInteger.valueOf(mCodeNum));
+                size++;
+            }
+
+            char []codes = new char[size];
+            number = new BigInteger(num);
+            while(number.compareTo(BigInteger.valueOf(0)) != 0) {
+                int remain = number.mod(BigInteger.valueOf(mCodeNum)).intValue();
+                number = number.divide(BigInteger.valueOf(mCodeNum));
+                codes[--size] = (char)(mCodeBase + remain);
+            }
+
+            return String.valueOf(codes);
         }
     }
 }
