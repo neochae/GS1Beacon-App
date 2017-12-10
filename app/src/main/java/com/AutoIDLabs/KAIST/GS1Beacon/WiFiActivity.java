@@ -90,12 +90,12 @@ public class WiFiActivity extends PreferenceActivity {
     public boolean onPreferenceTreeClick(PreferenceScreen preferenceScreen, Preference preference) {
         if (preference.getKey() != null) {
             WiFiInfo wifi = mWifis.get(preference.getKey());
-            if (wifi.isGS1WiFi()) {
+            if (wifi != null && wifi.isGS1WiFi()) {
                 Log.d(TAG, "GS1 AP 선택");
 
                 Intent intent = new Intent(WiFiActivity.this, ServiceActivity.class);
                 intent.putExtra(ServiceActivity.EXTRAS_DEVICE_NAME, wifi.apSsid);
-                intent.putExtra(ServiceActivity.EXTRAS_DEVICE_ADVDATA, "("+wifi.gs1Ai+")"+wifi.gs1Code + "\n");
+                intent.putExtra(ServiceActivity.EXTRAS_DEVICE_ADVDATA, "("+wifi.gs1Ai+")"+wifi.gs1Code + "0");
 
                 Bundle args1 = new Bundle();
                 args1.putSerializable("ARRAYLIST1", (Serializable) new ArrayList<String>());
@@ -166,10 +166,9 @@ public class WiFiActivity extends PreferenceActivity {
         }
 
         //test data
-        mWifis.put("00:1c:42:00:00:07", new WiFiInfo("00:1c:42:00:00:07", "NEO (01)0000000013200", -10));
-        mWifis.put("00:1c:42:00:00:0b", new WiFiInfo("00:1c:42:00:00:0b", "TEST (01)50614141322607", -20));
-        mWifis.put("00:1c:42:00:00:0c", new WiFiInfo("00:1c:42:00:00:0c", "NEO ASCII1 {\"}(RMKfim", -20));
-        mWifis.put("00:1c:42:00:00:0d", new WiFiInfo("00:1c:42:00:00:0d", "NEO ASCII2 {\"}(RMKfim{6}5r]orB", -20));
+        mWifis.put("00:1c:42:00:00:0a", new WiFiInfo("00:1c:42:00:00:0a", "GS1AP 1 (01)50614141322607", -20));
+        mWifis.put("00:1c:42:00:00:0b", new WiFiInfo("00:1c:42:00:00:0b", "GS1AP 2 {\"}\"&6RH-Qx", -20));
+        mWifis.put("00:1c:42:00:00:0c", new WiFiInfo("00:1c:42:00:00:0c", "GS1AP 3 {\"}\"&6RH-Qx{6}5r]orB", -20));
     }
 
     private BroadcastReceiver mWifiScanReceiver = new BroadcastReceiver() {

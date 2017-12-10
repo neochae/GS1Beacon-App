@@ -415,7 +415,7 @@ public class ServiceActivity extends AppCompatActivity {
 
             Lookup lookup = new Lookup(FQDN, Type.NAPTR);
             Record[] records = lookup.run();
-
+            Log.d("onsQuery | FQDN=", FQDN);
             if (lookup.getResult() == Lookup.SUCCESSFUL) {
                 int count = 0;
                 Bundle bun = new Bundle();
@@ -426,8 +426,17 @@ public class ServiceActivity extends AppCompatActivity {
                     String msg = "";
                     msg += FQDN + "\t";
                     msg += naptrRecord.getRegexp() + "\t";
-                    //TODO: get serviceType.xml form SNS.
-                    msg += naptrRecord.getService() + "\t";
+
+                    //TODO, async operation..
+                    ServiceTypeParser parser = new ServiceTypeParser(naptrRecord.getService(), null);
+                    parser.startParsing();
+                    String serviceType = parser.getResult().get(ServiceTypeParser.ID_TAGS);
+                    if (serviceType == null) {
+                        msg += naptrRecord.getService() + "\t";
+                    } else {
+                        msg += serviceType + "\t";
+                    }
+
                     msg += count + "\t";        //temp icon.
                     msg += count + "\t";        //temp abstract.
 
