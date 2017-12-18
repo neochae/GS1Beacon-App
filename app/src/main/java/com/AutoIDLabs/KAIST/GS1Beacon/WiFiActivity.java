@@ -95,7 +95,7 @@ public class WiFiActivity extends PreferenceActivity {
 
                 Intent intent = new Intent(WiFiActivity.this, ServiceActivity.class);
                 intent.putExtra(ServiceActivity.EXTRAS_DEVICE_NAME, wifi.apSsid);
-                intent.putExtra(ServiceActivity.EXTRAS_DEVICE_ADVDATA, "("+wifi.gs1Ai+")"+wifi.gs1Code + "0");
+                intent.putExtra(ServiceActivity.EXTRAS_DEVICE_ADVDATA, "("+wifi.gs1Ai+")"+wifi.gs1Code + "\n");
 
                 Bundle args1 = new Bundle();
                 args1.putSerializable("ARRAYLIST1", (Serializable) new ArrayList<String>());
