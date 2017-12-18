@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <Preference
+        android:key="refresh_contents"
+        android:title="@string/gs1_wifiap"
+        android:selectable="true" />
+
+    <PreferenceCategory
+        android:key="gs1_category"
+        android:title="@string/gs1ap_list" >
+    </PreferenceCategory>
+
+     <PreferenceCategory
+        android:key="normal_category"
+        android:title="@string/normalap_list" >
+    </PreferenceCategory>
+
+</PreferenceScreen>
