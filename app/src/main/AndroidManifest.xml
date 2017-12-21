@@ -12,6 +12,7 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.VIBRATE"/>
 
     <uses-feature
         android:name="android.hardware.bluetooth_le"
@@ -110,6 +111,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service android:name=".BackgroundScanner">
+            <intent-filter>
+                <action android:name="com.AutoIDLabs.KAIST.GS1Beacon.BackgroundScanner"/>
+            </intent-filter>
+        </service>
+
     </application>
 
 </manifest>

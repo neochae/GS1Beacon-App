@@ -1,13 +1,10 @@
 package com.AutoIDLabs.KAIST.GS1Beacon;
 
-import android.Manifest;
-import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.net.ConnectivityManager;
 import android.net.wifi.WifiManager;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -16,35 +13,23 @@ import android.os.Message;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceCategory;
-import android.preference.PreferenceManager;
 import android.preference.PreferenceScreen;
 import android.preference.SwitchPreference;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.support.v7.widget.Toolbar;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.net.wifi.ScanResult;
-import android.os.AsyncTask;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import android.util.Log;
-import android.widget.ImageView;
 import android.widget.Toast;
-import java.math.BigInteger;
 
 
 public class WiFiActivity extends PreferenceActivity {
     private static String TAG = "WiFiActivity";
     private WifiManager mWifiManager;
-    private ConnectivityManager mConnManager;
     private Context mContext;
     private HashMap<String, WiFiInfo> mWifis = new HashMap<String, WiFiInfo>();
     private Handler mLoaderHandler;
@@ -67,6 +52,12 @@ public class WiFiActivity extends PreferenceActivity {
         if(!mWifiManager.isWifiEnabled()){
             mWifiManager.setWifiEnabled(true);
             Log.d(TAG, "Wifi AP request enable");
+        } else {
+            mWifiManager.startScan();
+            mScanStart = System.currentTimeMillis();
+            Log.d(TAG, "Wifi AP scan start");
+            mProgressDialog = ProgressDialog.show(WiFiActivity.this, "", "GS1 AP정보를 수집 중입니다.", true);
+            mProgressDialog.show();
         }
 
         //Initialize preference
@@ -76,15 +67,18 @@ public class WiFiActivity extends PreferenceActivity {
         mNormalPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
             public boolean onPreferenceChange(Preference preference, Object newValue) {
                 if (newValue.toString().equals("true")) {
-                    //TODO, Background Service 시작
+                    Intent intent = new Intent(WiFiActivity.this, BackgroundScanner.class);
+                    startService(intent);
                 } else {
-                    //TODO, Background Service 종료
+                    Intent intent = new Intent(WiFiActivity.this, BackgroundScanner.class);
+                    stopService(intent);
                 }
                 return true;
             }
         });
         if (mNormalPreference.isChecked()) {
-            //TODO, Background Service 시작
+            Intent intent = new Intent(WiFiActivity.this, BackgroundScanner.class);
+            startService(intent);
         }
     }
 
@@ -94,16 +88,6 @@ public class WiFiActivity extends PreferenceActivity {
         final IntentFilter filter = new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
         filter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
         mContext.registerReceiver(mWifiScanReceiver, filter);
-
-        if(mWifiManager.isWifiEnabled()) {
-            mWifiManager.startScan();
-            Log.d(TAG, "Wifi AP scan start");
-        }
-        mScanStart = System.currentTimeMillis();
-        Log.d(TAG, "Wifi AP resume");
-
-        mProgressDialog = ProgressDialog.show(WiFiActivity.this, "", "GS1 AP정보를 수집 중입니다.", true);
-        mProgressDialog.show();
     }
 
     @Override
@@ -154,7 +138,6 @@ public class WiFiActivity extends PreferenceActivity {
                 mProcessing = true;
                 makePreferences();
                 mProcessing = false;
-                Toast.makeText(WiFiActivity.this, "GS1 AP 스캔을 완료하였습니다", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -241,114 +224,6 @@ public class WiFiActivity extends PreferenceActivity {
         }
     };
 
-    class WiFiInfo {
-        public String apBssid;
-        public String apSsid;
-        public int apRssi;
-
-        //GS1 WiFi only
-        public String gs1Ai;
-        public String gs1Code;
-        public String gs1Serial;
-        private String gs1Pattern = ".*\\((01|21|414|255|8017)\\)(\\d+)$";
-        private String gs1PatternEx = ".*\\{(\"|%W|#l|z\\()\\}(.+)$";
-        private String gs1SerialPatternEx = "\\{(6)\\}(.+)$";
-
-        public WiFiInfo(String bssid, String ssid, int rssi) {
-            apBssid = bssid;
-            apSsid = ssid;
-            apRssi = rssi;
-            gs1Ai = null;
-            gs1Code = null;
-            gs1Serial = null;
-
-            //GS1 WiFi AP
-            if (getGS1Info(apSsid)) {
-                if (gs1Serial == null) {
-                    Log.d(TAG, "GS1 WiFi detected AI=" + gs1Ai + ", GS1=" + gs1Code);
-                } else {
-                    Log.d(TAG, "GS1 WiFi detected AI=" + gs1Ai + ", GS1=" + gs1Code + ", SERIAL=" + gs1Serial);
-                }
-            }
-        }
-
-        public String toString() {
-            return "BSSID: " + apBssid + ", SSID: " + apSsid + ", RSSI: " + apRssi + ", gs1Code: " + gs1Code;
-        }
-
-        public boolean getGS1Info(String ssid) {
-            //(, Normal
-            Pattern pattern = Pattern.compile(gs1Pattern);
-            Matcher matcher = pattern.matcher(ssid);
-            if (matcher.find()) {
-                gs1Ai = matcher.group(1);
-                gs1Code = matcher.group(2);
-                return true;
-            }
-
-            //{, With serial
-            CodeConverter converter = new CodeConverter('!', 90);
-            pattern = Pattern.compile(gs1SerialPatternEx);
-            matcher = pattern.matcher(ssid);
-            if (matcher.find()) {
-                gs1Serial = converter.convertCodeToInt(matcher.group(2));
-                int index = ssid.lastIndexOf('{');
-                ssid = ssid.substring(0, index);
-            }
-
-            //{
-            pattern = Pattern.compile(gs1PatternEx);
-            matcher = pattern.matcher(ssid);
-
-            if (matcher.find()) {
-                gs1Ai = converter.convertCodeToInt(matcher.group(1));
-                gs1Code = converter.convertCodeToInt(matcher.group(2));
-
-                if (gs1Ai.equals("1")) {
-                    gs1Ai = "01";
-                }
-                return true;
-            }
-
-            return false;
-        }
-
-        public boolean isGS1WiFi() {
-            if (gs1Code != null) {
-                return true;
-            }
-
-            return false;
-        }
-
-        public void testPattern() {
-            List<String> testSet = new ArrayList<String>();
-            testSet.add("NEO");
-            testSet.add("(01)01234567890234");
-            testSet.add("(01)50614141322607");
-            testSet.add("NEO (01)01234567890234");
-            testSet.add("(414)01234567890234");
-            testSet.add("NEO (414)01234567890234");
-            testSet.add("NEO (a414)01234567890234");
-            testSet.add("N11EO (a414)01234567890234");
-            testSet.add("N11EO (a414)01234567890234");
-            testSet.add("N11EO (a414)01234567890234a");
-            testSet.add("N11EO (a414)01234567890234  1");
-            testSet.add("N11EO (a414)01234567890234  (01)1");
-            testSet.add("N11EO (a414)01234567890234  (01)");
-            testSet.add("N11EO 010 01234567890234");
-
-
-            for (String test : testSet) {
-                if (Pattern.matches(gs1Pattern, test)) {
-                    Log.d(TAG, test + ",  gs1 match");
-                } else {
-                    Log.d(TAG, test + ",  gs1 does not match");
-                }
-            }
-        }
-    }
-
     class WiFiLoaderHandler extends Handler {
         public WiFiLoaderHandler (Looper looper) {
             super(looper);
@@ -361,48 +236,6 @@ public class WiFiActivity extends PreferenceActivity {
                     super.handleMessage(msg);
                     break;
             }
-        }
-    }
-
-
-    public class CodeConverter {
-        public int mCodeBase = (int)'!';
-        public int mCodeNum = 90;
-
-        public CodeConverter(char codeBase, int codeNum) {
-            mCodeBase = (int)codeBase;
-            mCodeNum = codeNum;
-        }
-
-        String convertCodeToInt(String code) {
-            BigInteger number = new BigInteger("0");
-            BigInteger addFactor = new BigInteger("1");
-            char []codes = code.toCharArray();
-            for (int i = codes.length - 1; i >= 0; i--) {
-                number = number.add(addFactor.multiply(BigInteger.valueOf((int)codes[i] - mCodeBase)));
-                addFactor = addFactor.multiply(BigInteger.valueOf(mCodeNum));
-            }
-
-            return number.toString();
-        }
-
-        String convertIntToCode(String num) {
-            int size = 0;
-            BigInteger number = new BigInteger(num);
-            while(number.compareTo(BigInteger.valueOf(0)) != 0) {
-                number = number.divide(BigInteger.valueOf(mCodeNum));
-                size++;
-            }
-
-            char []codes = new char[size];
-            number = new BigInteger(num);
-            while(number.compareTo(BigInteger.valueOf(0)) != 0) {
-                int remain = number.mod(BigInteger.valueOf(mCodeNum)).intValue();
-                number = number.divide(BigInteger.valueOf(mCodeNum));
-                codes[--size] = (char)(mCodeBase + remain);
-            }
-
-            return String.valueOf(codes);
         }
     }
 }
