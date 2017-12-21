@@ -1,6 +1,8 @@
 package com.AutoIDLabs.KAIST.GS1Beacon;
 
+import android.Manifest;
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -14,13 +16,17 @@ import android.os.Message;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceCategory;
+import android.preference.PreferenceManager;
 import android.preference.PreferenceScreen;
+import android.preference.SwitchPreference;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.net.wifi.ScanResult;
+import android.os.AsyncTask;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -43,8 +49,10 @@ public class WiFiActivity extends PreferenceActivity {
     private HashMap<String, WiFiInfo> mWifis = new HashMap<String, WiFiInfo>();
     private Handler mLoaderHandler;
     private boolean mProcessing;
+    private long mScanStart;
+    private ProgressDialog mProgressDialog;
     PreferenceCategory mGS1Preference;
-    PreferenceCategory mNormalPreference;
+    SwitchPreference mNormalPreference;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,7 +72,20 @@ public class WiFiActivity extends PreferenceActivity {
         //Initialize preference
         addPreferencesFromResource(R.xml.preferences);
         mGS1Preference = (PreferenceCategory) findPreference("gs1_category");
-        mNormalPreference = (PreferenceCategory) findPreference("normal_category");
+        mNormalPreference = (SwitchPreference) findPreference("backgroundScanning");
+        mNormalPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+            public boolean onPreferenceChange(Preference preference, Object newValue) {
+                if (newValue.toString().equals("true")) {
+                    //TODO, Background Service 시작
+                } else {
+                    //TODO, Background Service 종료
+                }
+                return true;
+            }
+        });
+        if (mNormalPreference.isChecked()) {
+            //TODO, Background Service 시작
+        }
     }
 
     protected void onResume() {
@@ -74,10 +95,15 @@ public class WiFiActivity extends PreferenceActivity {
         filter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
         mContext.registerReceiver(mWifiScanReceiver, filter);
 
-        if(!mWifiManager.isWifiEnabled()) {
+        if(mWifiManager.isWifiEnabled()) {
             mWifiManager.startScan();
-            Log.d(TAG, "Wifi AP scan start..");
+            Log.d(TAG, "Wifi AP scan start");
         }
+        mScanStart = System.currentTimeMillis();
+        Log.d(TAG, "Wifi AP resume");
+
+        mProgressDialog = ProgressDialog.show(WiFiActivity.this, "", "GS1 AP정보를 수집 중입니다.", true);
+        mProgressDialog.show();
     }
 
     @Override
@@ -106,6 +132,15 @@ public class WiFiActivity extends PreferenceActivity {
                 intent.putExtra("BUNDLE2", args2);
 
                 startActivity(intent);
+            } else if (preference.getKey().equals("refreshScan")) {
+                if(mWifiManager.isWifiEnabled()) {
+                    mWifiManager.startScan();
+                    Log.d(TAG, "Wifi AP scan re-start");
+                }
+                Log.d(TAG, "Wifi AP explicit scanning..");
+                mScanStart = System.currentTimeMillis();
+                mProgressDialog = ProgressDialog.show(WiFiActivity.this, "", "GS1 AP정보를 수집 중입니다.", true);
+                mProgressDialog.show();
             }
         }
 
@@ -119,7 +154,7 @@ public class WiFiActivity extends PreferenceActivity {
                 mProcessing = true;
                 makePreferences();
                 mProcessing = false;
-                Toast.makeText(WiFiActivity.this, mWifis.size() + "개의 WiFi AP 정보를 수집하였습니다.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(WiFiActivity.this, "GS1 AP 스캔을 완료하였습니다", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -128,16 +163,23 @@ public class WiFiActivity extends PreferenceActivity {
         Log.d(TAG, "making preference..");
 
         mGS1Preference.removeAll();
-        mNormalPreference.removeAll();
 
         for(String key : mWifis.keySet() ){
             WiFiInfo wifi = mWifis.get(key);
             Preference wifiPreference = makePreference(wifi);
 
+            if (wifi.gs1Ai != null) {
+                if (wifi.gs1Ai.equals("01")) {
+                    wifiPreference.setIcon(R.drawable.gtin);
+                } else if (wifi.gs1Ai.equals("414")) {
+                    wifiPreference.setIcon(R.drawable.gln);
+                }
+            }
+
             if (wifi.isGS1WiFi()) {
                 mGS1Preference.addPreference(wifiPreference);
             } else {
-                mNormalPreference.addPreference(wifiPreference);
+                //mNormalPreference.addPreference(wifiPreference);
             }
         }
 
@@ -165,10 +207,15 @@ public class WiFiActivity extends PreferenceActivity {
             mWifis.put(wifiInfo.apBssid, wifiInfo);
         }
 
-        //test data
-        mWifis.put("00:1c:42:00:00:0a", new WiFiInfo("00:1c:42:00:00:0a", "GS1AP 1 (01)50614141322607", -20));
-        mWifis.put("00:1c:42:00:00:0b", new WiFiInfo("00:1c:42:00:00:0b", "GS1AP 2 {\"}\"&6RH-Qx", -20));
-        mWifis.put("00:1c:42:00:00:0c", new WiFiInfo("00:1c:42:00:00:0c", "GS1AP 3 {\"}\"&6RH-Qx{6}5r]orB", -20));
+        long scan = System.currentTimeMillis();
+        Log.d(TAG, "Wifi AP scan end, time=" + (scan-mScanStart));
+        if (mProgressDialog != null) {
+            mProgressDialog.dismiss();
+            mProgressDialog = null;
+        }
+
+        //mWifis.put("00:1c:42:00:00:0d", new WiFiInfo("00:1c:42:00:00:0d", "방탄 (414)8800026916017", -20));
+        //mWifis.put("00:1c:42:00:00:0e", new WiFiInfo("00:1c:42:00:00:0e", "스벅 (01)08800026916109", -20));
     }
 
     private BroadcastReceiver mWifiScanReceiver = new BroadcastReceiver() {

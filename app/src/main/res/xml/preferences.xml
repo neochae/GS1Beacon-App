@@ -10,9 +10,16 @@
         android:title="@string/gs1ap_list" >
     </PreferenceCategory>
 
-     <PreferenceCategory
-        android:key="normal_category"
-        android:title="@string/normalap_list" >
-    </PreferenceCategory>
+    <Preference
+        android:key="refreshScan"
+        android:title="GS1 AP를 다시 검색합니다" />
+
+    <SwitchPreference
+        android:defaultValue="false"
+        android:key="backgroundScanning"
+        android:summary="백그라운드 GS1 AP검색을 설정합니다"
+        android:switchTextOff="OFF"
+        android:switchTextOn="ON"
+        android:title="자동 검색" />
 
 </PreferenceScreen>

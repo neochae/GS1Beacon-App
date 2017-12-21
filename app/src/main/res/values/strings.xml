@@ -18,9 +18,9 @@
     <string name="menu_checkClear">Clear All</string>
     <string name="turn_on_flashlight">Turn on Flashlight</string>
     <string name="turn_off_flashlight">Turn off Flashlight</string>
-    <string name="gs1_wifiap">GS1 on the WiFi AP</string>
-    <string name="gs1ap_list">GS1 WiFi AP list</string>
-    <string name="normalap_list">Normal WiFi AP list</string>
+    <string name="gs1_wifiap">GS1 on the AP</string>
+    <string name="gs1ap_list">GS1 AP 목록</string>
+    <string name="normalap_list">GS1 AP 스캔 요청</string>
 
     <!-- Strings related to Settings -->
 

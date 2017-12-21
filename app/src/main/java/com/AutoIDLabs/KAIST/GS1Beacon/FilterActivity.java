@@ -412,7 +412,7 @@ public class FilterActivity extends AppCompatActivity {
                     hMsg.setData(bun);
 
                     count++;
-                    //Log.d("onsQuery | NAPTR | ", naptrRecord.toString());
+                    Log.d("onsQuery | NAPTR | ", naptrRecord.toString());
                 }
                 //Send message.
                 handler.sendMessage(hMsg);

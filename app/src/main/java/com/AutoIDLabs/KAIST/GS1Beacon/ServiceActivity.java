@@ -3,9 +3,11 @@ package com.AutoIDLabs.KAIST.GS1Beacon;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.preference.PreferenceActivity;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -36,6 +38,7 @@ import org.xbill.DNS.Type;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
+
 
 /**
  * Created by SNAIL on 2016-02-12.
@@ -248,14 +251,28 @@ public class ServiceActivity extends AppCompatActivity {
         public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
             final String url = (mServiceAdapter.getURL(position).split("!"))[2];
             if (url == null) return;
+
+            /*
             Intent intent = new Intent(view.getContext(), WebActivity.class);
             intent.putExtra(WebActivity.EXTRAS_SERVICE_URL, url);
-
             Thread.interrupted();
-
             startActivity(intent);
+            */
+            startActivityAndCapture(url, mServiceAdapter.getURL(position));
         }
     };
+
+    private void startActivityAndCapture(String url, String type) {
+        Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_VIEW);
+        intent.addCategory(Intent.CATEGORY_BROWSABLE);
+        intent.setData(Uri.parse(url));
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
+
+        AccessCapture access = new AccessCapture(this, mDeviceAdvData, type, url);
+        access.capture();
+    }
 
     private void displayService(String data) {
 
