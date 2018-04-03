@@ -19,6 +19,8 @@ import android.os.Looper;
 import android.os.Message;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
+import android.view.Gravity;
+import android.widget.Toast;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -86,10 +88,16 @@ public class BackgroundScanner extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-    }
 
-    public void checkAP() {
-
+        synchronized (mNotification) {
+            Set set = mNotification.keySet();
+            Iterator iterator = set.iterator();
+            NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            while (iterator.hasNext()) {
+                String key = (String) iterator.next();
+                notificationManager.cancel(key.hashCode());
+            }
+        }
     }
 
     public Intent getDetailIntent(String ssid, String ai, String code) {
@@ -105,6 +113,8 @@ public class BackgroundScanner extends Service {
         intent.putExtra("BUNDLE1", args1);
         intent.putExtra("BUNDLE2", args2);
 
+        Log.d(TAG, "getDetailIntent intent notified! " + intent + ", code=" + code);
+
         return intent;
     }
 
@@ -112,7 +122,7 @@ public class BackgroundScanner extends Service {
         public void run() {
             List<ScanResult> scanResult;
             HashMap<String, WiFiInfo> newList = new HashMap<String, WiFiInfo>();
-            NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
             scanResult = mWifiManager.getScanResults();
             for (int i = 0; i < scanResult.size(); i++) {
@@ -126,8 +136,9 @@ public class BackgroundScanner extends Service {
                         NotificationCompat.Builder mBuilder =
                                 new NotificationCompat.Builder(BackgroundScanner.this);
 
+                        int requestID = (int) System.currentTimeMillis();
                         Intent intent = getDetailIntent(wifiInfo.apSsid, wifiInfo.gs1Ai, wifiInfo.gs1Code);
-                        PendingIntent pendingIntent = PendingIntent.getActivity(BackgroundScanner.this, 0, intent, 0);
+                        PendingIntent pendingIntent = PendingIntent.getActivity(BackgroundScanner.this, requestID, intent, 0);
 
                         mBuilder.setContentIntent(pendingIntent);
                         if (wifiInfo.gs1Ai.equals("01")) {
@@ -138,9 +149,16 @@ public class BackgroundScanner extends Service {
                         mBuilder.setContentTitle("GS1 AP");
                         mBuilder.setContentText(wifiInfo.apSsid);
 
-                        mNotificationManager.notify(wifiInfo.apBssid.hashCode(), mBuilder.build());
-                        mNotification.put(wifiInfo.apBssid, wifiInfo);
-                        Log.d(TAG, "WIFI backgorund scan, new notified!");
+                        notificationManager.notify(wifiInfo.apBssid.hashCode(), mBuilder.build());
+                        synchronized (mNotification) {
+                            mNotification.put(wifiInfo.apBssid, wifiInfo);
+                        }
+
+                        Toast toast = Toast.makeText(getApplicationContext(),
+                                "새로운 GS1 AP 서비스가 검색되었습니다", Toast.LENGTH_LONG);
+                        toast.setGravity(Gravity.CENTER, 0, 0);
+                        toast.show();
+                        Log.d(TAG, "WIFI backgorund scan, new notified!" + wifiInfo + ", id=" + wifiInfo.apBssid.hashCode());
                     }
                 } else {
                     Log.d(TAG, "WIFI backgorund scan, already notified!");
@@ -148,14 +166,20 @@ public class BackgroundScanner extends Service {
             }
 
             //Check Already Service
-            Set set = mNotification.keySet();
-            Iterator iterator = set.iterator();
-            while(iterator.hasNext()) {
-                String key = (String)iterator.next();
-                if (newList.get(key) == null || !newList.get(key).isGS1WiFi()) {
-                    Log.d(TAG, "WIFI backgorund scan, remove notification");
-                    mNotificationManager.cancel(key.hashCode());
-                    mNotification.remove(key);
+            synchronized (mNotification) {
+                ArrayList<String> removeList = new ArrayList<String>();
+                Set set = mNotification.keySet();
+                Iterator iterator = set.iterator();
+                while (iterator.hasNext()) {
+                    String key = (String) iterator.next();
+                    if (newList.get(key) == null || !newList.get(key).isGS1WiFi()) {
+                        Log.d(TAG, "WIFI backgorund scan, remove notification");
+                        notificationManager.cancel(key.hashCode());
+                        removeList.add(key);
+                    }
+                }
+                for(int i = 0; i < removeList.size(); i++) {
+                    mNotification.remove(removeList.get(i));
                 }
             }
 

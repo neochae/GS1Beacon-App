@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!DOCTYPE project>
+<epcis:EPCISDocument xmlns:epcis="urn:epcglobal:epcis:xsd:1"
+	xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:apservice="urn:autoidlabsk:epcisapp:apservice"
+	schemaVersion="1.2" creationDate="2017-12-22T11:25:08.720">
+	<EPCISBody>
+		<EventList>
+			<ObjectEvent>
+                <eventTime>2017-12-22T11:25:08.720</eventTime>
+				<eventTimeZoneOffset>+09:00</eventTimeZoneOffset>
+				<epcList>
+					<epc>urn:epc:id:sgtin:88000269.01610.000</epc>
+				</epcList>
+				<action>OBSERVE</action>
+				<bizStep>urn:autoidlabsk:epcisapp:apservice:bizstep:access</bizStep>
+				<disposition>urn:epcglobal:cbv:disp:active</disposition>
+				<readPoint>
+					<id>urn:epc:id:sgln:88000269.1601.000</id>
+				</readPoint>
+				<bizLocation>
+					<id>urn:epc:id:sgln:88000269.1601.000</id>
+				</bizLocation>
+
+				<apservice:apId xsi:type="xsd:string">urn:epc:id:sgln:88000269.1601.000</apservice:apId>
+				<apservice:serviceUrl xsi:type="xsd:string">https://www.google.co.kr/</apservice:serviceUrl>
+				<apservice:productInfo xsi:type="xsd:string">urn:epc:id:sgtin:88000269.01610.000</apservice:productInfo>
+				<apservice:userInfo xsi:type="xsd:string">50:55:27:ff:29:40</apservice:userInfo>
+			</ObjectEvent>
+		</EventList>
+	</EPCISBody>
+</epcis:EPCISDocument>
