@@ -75,7 +75,7 @@ public class AccessCapture {
 
                 try {
                     HttpClient client = new DefaultHttpClient();
-                    String postURL = "http://gs1ap.asuscomm.com:8447/epcis/Service/EventCapture";
+                    String postURL = "http://14.63.168.75:8080/epcis/Service/EventCapture";
                     HttpPost post = new HttpPost(postURL);
                     StringBuilder text = new StringBuilder();
 

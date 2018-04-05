@@ -92,7 +92,12 @@ public class ServiceTypeParser implements Runnable{
             }
         }
 
-        Log.d(TAG, "ServiceTypePargser completed, " + Integer.toString(mInterestTags.size()));
+        if (mInterestTags != null) {
+            Log.d(TAG, "ServiceTypePargser completed, " + Integer.toString(mInterestTags.size()));
+        } else {
+            Log.d(TAG, "ServiceTypePargser completed, Interest Tags are NULL");
+        }
+
     }
 
     public HashMap<String, String> getResult(){
